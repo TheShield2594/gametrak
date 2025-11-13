@@ -79,7 +79,7 @@
                 return () => unsubscribe();
             }, []);
 
-            const loadUserData = async (userId) => {
+const loadUserData = async (userId) => {
     try {
         console.log('Loading user data for:', userId);
         
@@ -91,12 +91,23 @@
             
             const encryptedKey = userData.apiKey || '';
             
+            // 🔍 NEW: Show what's actually stored
+            console.log('Encrypted key from Firebase:', encryptedKey);
+            console.log('Encrypted key length:', encryptedKey.length);
+            
             if (encryptedKey) {
                 try {
                     const decrypted = decryptKey(encryptedKey);
                     console.log('API key decrypted successfully');
                     console.log('Decrypted key length:', decrypted.length);
+                    console.log('Decrypted first 10 chars:', decrypted.substring(0, 10));
                     console.log('Setting userApiKey state with value');
+                    
+                    if (decrypted.length === 0) {
+                        console.error('⚠️ DECRYPTION RETURNED EMPTY STRING!');
+                        alert('Your API key could not be decrypted. You may need to sign up again with your API key.');
+                        return;
+                    }
                     
                     // Force state update
                     setUserApiKey(decrypted);
@@ -527,5 +538,6 @@
     </script>
 </body>
 </html>
+
 
 
