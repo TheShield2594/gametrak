@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameTrak - Your Video Game Database</title>
+    <title>GameTrak - Video Game Database</title>
     <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
@@ -15,7 +15,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body>
     <div id="root"></div>
@@ -39,7 +38,6 @@
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
 
         // Encryption secret (in production, use environment variable)
         const SECRET_KEY = "gametrak-2025-secure-key-change-this";
@@ -69,14 +67,11 @@
             
             // Profile page states
             const [displayName, setDisplayName] = useState('');
-            const [profilePicture, setProfilePicture] = useState('');
             const [newDisplayName, setNewDisplayName] = useState('');
             const [newApiKey, setNewApiKey] = useState('');
             const [currentPassword, setCurrentPassword] = useState('');
             const [newPassword, setNewPassword] = useState('');
             const [confirmNewPassword, setConfirmNewPassword] = useState('');
-            const [profileImageFile, setProfileImageFile] = useState(null);
-            const [uploadingImage, setUploadingImage] = useState(false);
 
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -88,7 +83,6 @@
                         setUserApiKey('');
                         setBeatenGames([]);
                         setDisplayName('');
-                        setProfilePicture('');
                     }
                 });
                 return () => unsubscribe();
@@ -104,9 +98,8 @@
                         const userData = userDoc.data();
                         console.log('User document found');
                         
-                        // Load display name and profile picture
+                        // Load display name
                         setDisplayName(userData.displayName || '');
-                        setProfilePicture(userData.profilePicture || '');
                         
                         const encryptedKey = userData.apiKey || '';
                         
@@ -170,7 +163,6 @@
                         email: username.trim(),
                         apiKey: encryptKey(apiKey.trim()),
                         displayName: '',
-                        profilePicture: '',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     setUsername('');
@@ -284,42 +276,6 @@
                 }
             };
 
-            const handleProfileImageUpload = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                // Validate file type
-                if (!file.type.startsWith('image/')) {
-                    alert('Please upload an image file');
-                    return;
-                }
-
-                // Validate file size (max 5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image must be less than 5MB');
-                    return;
-                }
-
-                setUploadingImage(true);
-                try {
-                    const storageRef = storage.ref();
-                    const fileRef = storageRef.child(`profile-pictures/${auth.currentUser.uid}`);
-                    await fileRef.put(file);
-                    const downloadURL = await fileRef.getDownloadURL();
-                    
-                    await db.collection('users').doc(auth.currentUser.uid).update({
-                        profilePicture: downloadURL
-                    });
-                    
-                    setProfilePicture(downloadURL);
-                    alert('Profile picture updated successfully!');
-                } catch (error) {
-                    alert('Failed to upload profile picture: ' + error.message);
-                } finally {
-                    setUploadingImage(false);
-                }
-            };
-
            const searchGames = async () => {
     if (!searchQuery.trim()) return;
     if (!userApiKey) {
@@ -413,17 +369,9 @@
                                                 onClick={() => setView('profile')}
                                                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition"
                                             >
-                                                {profilePicture ? (
-                                                    <img 
-                                                        src={profilePicture} 
-                                                        alt="Profile" 
-                                                        className="w-10 h-10 rounded-full object-cover border-2 border-purple-400"
-                                                    />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center border-2 border-purple-400">
-                                                        <i className="fas fa-user text-white"></i>
-                                                    </div>
-                                                )}
+                                                <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center border-2 border-purple-400">
+                                                    <i className="fas fa-user text-white"></i>
+                                                </div>
                                                 <div className="flex flex-col items-start">
                                                     <span className="font-medium text-white">
                                                         {displayName || user}
@@ -671,45 +619,6 @@
                                         Profile Settings
                                     </h2>
 
-                                    {/* Profile Picture Section */}
-                                    <div className="mb-8 pb-8 border-b border-purple-500">
-                                        <h3 className="text-xl font-semibold text-white mb-4">Profile Picture</h3>
-                                        <div className="flex items-center gap-6">
-                                            {profilePicture ? (
-                                                <img 
-                                                    src={profilePicture} 
-                                                    alt="Profile" 
-                                                    className="w-24 h-24 rounded-full object-cover border-4 border-purple-400"
-                                                />
-                                            ) : (
-                                                <div className="w-24 h-24 rounded-full bg-purple-600 flex items-center justify-center border-4 border-purple-400">
-                                                    <i className="fas fa-user text-white text-4xl"></i>
-                                                </div>
-                                            )}
-                                            <div>
-                                                <input
-                                                    type="file"
-                                                    id="profile-picture-upload"
-                                                    accept="image/*"
-                                                    onChange={handleProfileImageUpload}
-                                                    className="hidden"
-                                                />
-                                                <label
-                                                    htmlFor="profile-picture-upload"
-                                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition cursor-pointer ${
-                                                        uploadingImage 
-                                                            ? 'bg-gray-600 text-white cursor-not-allowed'
-                                                            : 'bg-purple-600 hover:bg-purple-700 text-white'
-                                                    }`}
-                                                >
-                                                    <i className={uploadingImage ? "fas fa-spinner fa-spin" : "fas fa-upload"}></i>
-                                                    {uploadingImage ? 'Uploading...' : 'Upload New Picture'}
-                                                </label>
-                                                <p className="text-gray-300 text-sm mt-2">Max size: 5MB. Formats: JPG, PNG, GIF</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     {/* Display Name Section */}
                                     <div className="mb-8 pb-8 border-b border-purple-500">
                                         <h3 className="text-xl font-semibold text-white mb-4">Display Name</h3>
@@ -814,3 +723,4 @@
     </script>
 </body>
 </html>
+
