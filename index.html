@@ -20,13 +20,14 @@ export default function GameTracker() {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadBeatenGames();
-    }
-  }, [user]);
-
-  const loadUser = async () => {
+  const firebaseConfig = {
+    apiKey: "AIzaSyCbA8DPjr2kq-id8uk2SL-69neB4t5eIIM",
+    authDomain: "gametrak-69.firebaseapp.com",
+    projectId: "gametrak-69",
+    storageBucket: "gametrak-69.firebasestorage.app",
+    messagingSenderId: "867080027370",
+    appId: "1:867080027370:web:48e6203fd3b0e41ee36b93"
+  };
     try {
       const result = await window.storage.get('current_user', false);
       if (result) {
@@ -470,4 +471,5 @@ export default function GameTracker() {
       </div>
     </div>
   );
+
 }
