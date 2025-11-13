@@ -40,7 +40,7 @@
         const db = firebase.firestore();
 
         // Encryption secret (in production, use environment variable)
-        const SECRET_KEY = "czq7cqd_zeu2TMY8pjv";
+        const SECRET_KEY = "gametrak-2025-secure-key-change-this";
 
         function encryptKey(key) {
             return CryptoJS.AES.encrypt(key, SECRET_KEY).toString();
@@ -286,14 +286,28 @@
                                                         placeholder="Confirm Password"
                                                         className="px-4 py-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                                     />
-                                                    <input
-                                                        type="text"
-                                                        value={apiKey}
-                                                        onChange={(e) => setApiKey(e.target.value)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
-                                                        placeholder="RAWG API Key"
-                                                        className="px-4 py-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={apiKey}
+                                                            onChange={(e) => setApiKey(e.target.value)}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
+                                                            placeholder="RAWG API Key"
+                                                            className="px-4 py-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        />
+                                                        <div className="relative group">
+                                                            <i className="fas fa-info-circle text-purple-300 cursor-help"></i>
+                                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+                                                                <p className="mb-2">Get your free RAWG API key:</p>
+                                                                <a href="https://rawg.io/apidocs" target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 underline pointer-events-auto">
+                                                                    rawg.io/apidocs
+                                                                </a>
+                                                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                                                    <div className="border-8 border-transparent border-t-gray-900"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                             <button
@@ -474,4 +488,3 @@
     </script>
 </body>
 </html>
-
