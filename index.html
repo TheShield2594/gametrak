@@ -578,12 +578,15 @@
                     <div className="glass-morphism border-b-0 shadow-2xl sticky top-0 z-40 animate-slideDown">
                         <div className="max-w-7xl mx-auto px-4 py-5">
                             <div className="flex items-center justify-between flex-wrap gap-4">
-                                <div className="flex items-center gap-3 floating">
+                                <button 
+                                    onClick={() => setView('search')}
+                                    className="flex items-center gap-3 floating hover:scale-105 transition-transform duration-300 cursor-pointer"
+                                >
                                     <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/50">
                                         <i className="fas fa-gamepad text-white text-2xl"></i>
                                     </div>
                                     <h1 className="text-3xl font-bold gradient-text">GameTrak</h1>
-                                </div>
+                                </button>
                                 
                                 <div className="flex items-center gap-4 flex-wrap">
                                     {user ? (
@@ -1326,3 +1329,5 @@
     </script>
 </body>
 </html>
+</html>
+
