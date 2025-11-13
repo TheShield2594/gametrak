@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameTrak - Video Game Database</title>
+    <title>GameTrak - Your Video Game Database</title>
     <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
@@ -409,7 +409,10 @@
                                 <div className="flex items-center gap-4 flex-wrap">
                                     {user ? (
                                         <>
-                                            <div className="flex items-center gap-3">
+                                            <button 
+                                                onClick={() => setView('profile')}
+                                                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition"
+                                            >
                                                 {profilePicture ? (
                                                     <img 
                                                         src={profilePicture} 
@@ -429,7 +432,7 @@
                                                         API Key: {userApiKey ? '✓ Loaded' : '✗ Missing'}
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </button>
                                             <button
                                                 onClick={handleLogout}
                                                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
@@ -534,19 +537,6 @@
                                 <i className="fas fa-trophy mr-2"></i>
                                 My Games ({beatenGames.length})
                             </button>
-                            {user && (
-                                <button
-                                    onClick={() => setView('profile')}
-                                    className={`px-6 py-3 rounded-lg font-medium transition ${
-                                        view === 'profile'
-                                            ? 'bg-purple-600 text-white'
-                                            : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-                                    }`}
-                                >
-                                    <i className="fas fa-user-circle mr-2"></i>
-                                    Profile
-                                </button>
-                            )}
                         </div>
 
                         {view === 'search' && (
@@ -824,5 +814,3 @@
     </script>
 </body>
 </html>
-
-
