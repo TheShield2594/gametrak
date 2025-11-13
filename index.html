@@ -64,6 +64,9 @@
             const [beatenGames, setBeatenGames] = useState([]);
             const [loading, setLoading] = useState(false);
             const [view, setView] = useState('search');
+            const [trendingGames, setTrendingGames] = useState([]);
+            const [loadingTrending, setLoadingTrending] = useState(false);
+            const [hasSearched, setHasSearched] = useState(false);
             
             // Profile page states
             const [displayName, setDisplayName] = useState('');
@@ -87,6 +90,13 @@
                 });
                 return () => unsubscribe();
             }, []);
+
+            // Load trending games when component mounts and user has API key
+            useEffect(() => {
+                if (userApiKey && trendingGames.length === 0 && !hasSearched) {
+                    loadTrendingGames();
+                }
+            }, [userApiKey]);
 
             const loadUserData = async (userId) => {
                 try {
@@ -141,6 +151,31 @@
                 } catch (error) {
                     console.error('Error loading user data:', error);
                     alert('Failed to load user data: ' + error.message);
+                }
+            };
+
+            const loadTrendingGames = async () => {
+                if (!userApiKey) return;
+                setLoadingTrending(true);
+                try {
+                    const proxyUrl = 'https://corsproxy.io/?';
+                    // Get recent popular games (released in last 12 months, ordered by rating and popularity)
+                    const today = new Date();
+                    const lastYear = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                    const dateStr = lastYear.toISOString().split('T')[0];
+                    
+                    const apiUrl = `https://api.rawg.io/api/games?key=${userApiKey}&dates=${dateStr},${today.toISOString().split('T')[0]}&ordering=-added&page_size=12`;
+                    
+                    const response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                    const data = await response.json();
+                    
+                    if (!data.error && data.results) {
+                        setTrendingGames(data.results);
+                    }
+                } catch (error) {
+                    console.error('Failed to load trending games:', error);
+                } finally {
+                    setLoadingTrending(false);
                 }
             };
 
@@ -283,6 +318,7 @@
         return;
     }
     setLoading(true);
+    setHasSearched(true);
     try {
         // Use CORS proxy
         const proxyUrl = 'https://corsproxy.io/?';
@@ -532,46 +568,107 @@
                                     </div>
                                 </div>
 
-                                {searchResults.length > 0 && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {searchResults.map((game) => (
-                                            <div
-                                                key={game.id}
-                                                className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-purple-500 hover:border-purple-400 transition"
-                                            >
-                                                {game.background_image && (
-                                                    <img
-                                                        src={game.background_image}
-                                                        alt={game.name}
-                                                        className="w-full h-48 object-cover"
-                                                    />
-                                                )}
-                                                <div className="p-4">
-                                                    <h3 className="text-xl font-bold text-white mb-2">
-                                                        {game.name}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 text-gray-300 text-sm mb-3">
-                                                        <i className="fas fa-star text-yellow-400"></i>
-                                                        <span>{game.rating}/5</span>
-                                                        {game.released && (
-                                                            <span className="ml-auto">{game.released}</span>
-                                                        )}
+                                {/* New & Trending Section - Only show if user hasn't searched yet */}
+                                {!hasSearched && trendingGames.length > 0 && (
+                                    <div className="mb-8">
+                                        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <i className="fas fa-fire text-orange-400"></i>
+                                            New & Trending Games
+                                        </h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {trendingGames.map((game) => (
+                                                <div
+                                                    key={game.id}
+                                                    className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-orange-500 hover:border-orange-400 transition"
+                                                >
+                                                    {game.background_image && (
+                                                        <img
+                                                            src={game.background_image}
+                                                            alt={game.name}
+                                                            className="w-full h-48 object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="p-4">
+                                                        <h3 className="text-xl font-bold text-white mb-2">
+                                                            {game.name}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 text-gray-300 text-sm mb-3">
+                                                            <i className="fas fa-star text-yellow-400"></i>
+                                                            <span>{game.rating}/5</span>
+                                                            {game.released && (
+                                                                <span className="ml-auto">{game.released}</span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => addBeatenGame(game)}
+                                                            disabled={isGameBeaten(game.id)}
+                                                            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium ${
+                                                                isGameBeaten(game.id)
+                                                                    ? 'bg-green-600 text-white cursor-not-allowed'
+                                                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                                            }`}
+                                                        >
+                                                            <i className={isGameBeaten(game.id) ? "fas fa-trophy" : "fas fa-plus"}></i>
+                                                            {isGameBeaten(game.id) ? 'Already Beaten' : 'Mark as Beaten'}
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => addBeatenGame(game)}
-                                                        disabled={isGameBeaten(game.id)}
-                                                        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium ${
-                                                            isGameBeaten(game.id)
-                                                                ? 'bg-green-600 text-white cursor-not-allowed'
-                                                                : 'bg-purple-600 hover:bg-purple-700 text-white'
-                                                        }`}
-                                                    >
-                                                        <i className={isGameBeaten(game.id) ? "fas fa-trophy" : "fas fa-plus"}></i>
-                                                        {isGameBeaten(game.id) ? 'Already Beaten' : 'Mark as Beaten'}
-                                                    </button>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Loading state for trending */}
+                                {!hasSearched && loadingTrending && (
+                                    <div className="text-center py-8">
+                                        <i className="fas fa-spinner fa-spin text-purple-400 text-4xl mb-3"></i>
+                                        <p className="text-white text-lg">Loading trending games...</p>
+                                    </div>
+                                )}
+
+                                {searchResults.length > 0 && (
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-4">Search Results</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {searchResults.map((game) => (
+                                                <div
+                                                    key={game.id}
+                                                    className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-purple-500 hover:border-purple-400 transition"
+                                                >
+                                                    {game.background_image && (
+                                                        <img
+                                                            src={game.background_image}
+                                                            alt={game.name}
+                                                            className="w-full h-48 object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="p-4">
+                                                        <h3 className="text-xl font-bold text-white mb-2">
+                                                            {game.name}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 text-gray-300 text-sm mb-3">
+                                                            <i className="fas fa-star text-yellow-400"></i>
+                                                            <span>{game.rating}/5</span>
+                                                            {game.released && (
+                                                                <span className="ml-auto">{game.released}</span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => addBeatenGame(game)}
+                                                            disabled={isGameBeaten(game.id)}
+                                                            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium ${
+                                                                isGameBeaten(game.id)
+                                                                    ? 'bg-green-600 text-white cursor-not-allowed'
+                                                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                                            }`}
+                                                        >
+                                                            <i className={isGameBeaten(game.id) ? "fas fa-trophy" : "fas fa-plus"}></i>
+                                                            {isGameBeaten(game.id) ? 'Already Beaten' : 'Mark as Beaten'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -767,5 +864,3 @@
     </script>
 </body>
 </html>
-
-
