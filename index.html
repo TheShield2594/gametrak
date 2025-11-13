@@ -758,12 +758,16 @@
                                                     <img
                                                         src={game.image}
                                                         alt={game.name}
-                                                        className="w-full h-48 object-cover"
+                                                        className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition"
+                                                        onClick={() => openGameDetails(game)}
                                                     />
                                                 )}
                                                 <div className="p-4">
                                                     <div className="flex items-start justify-between mb-2">
-                                                        <h3 className="text-xl font-bold text-white flex-1">
+                                                        <h3 
+                                                            className="text-xl font-bold text-white flex-1 cursor-pointer hover:text-green-300 transition"
+                                                            onClick={() => openGameDetails(game)}
+                                                        >
                                                             {game.name}
                                                         </h3>
                                                         <i className="fas fa-trophy text-yellow-400 text-2xl ml-2"></i>
@@ -796,13 +800,22 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <button
-                                                        onClick={() => removeBeatenGame(game.id)}
-                                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
-                                                    >
-                                                        <i className="fas fa-trash"></i>
-                                                        Remove
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => openGameDetails(game)}
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+                                                        >
+                                                            <i className="fas fa-info-circle"></i>
+                                                            Details
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeBeatenGame(game.id)}
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                            Remove
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
