@@ -315,11 +315,12 @@
                     image: game.background_image,
                     rating: game.rating,
                     released: game.released,
+                    timesCompleted: 1,
                     addedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 try {
-                    await db.collection('users').doc(auth.currentUser.uid).collection('beatenGames').add(gameData);
-                    setBeatenGames([...beatenGames, { ...gameData, docId: game.id }]);
+                    const docRef = await db.collection('users').doc(auth.currentUser.uid).collection('beatenGames').add(gameData);
+                    setBeatenGames([...beatenGames, { ...gameData, docId: docRef.id }]);
                     alert(`Added "${game.name}" to your beaten games!`);
                 } catch (error) {
                     alert('Failed to add game: ' + error.message);
@@ -337,6 +338,28 @@
                     setBeatenGames(beatenGames.filter(g => g.id !== gameId));
                 } catch (error) {
                     alert('Failed to remove game: ' + error.message);
+                }
+            };
+
+            const incrementTimesCompleted = async (game) => {
+                if (!auth.currentUser) return;
+                try {
+                    const newCount = (game.timesCompleted || 1) + 1;
+                    
+                    // Update in Firestore
+                    await db.collection('users').doc(auth.currentUser.uid).collection('beatenGames')
+                        .doc(game.docId).update({
+                            timesCompleted: newCount
+                        });
+                    
+                    // Update local state
+                    setBeatenGames(beatenGames.map(g => 
+                        g.docId === game.docId 
+                            ? { ...g, timesCompleted: newCount }
+                            : g
+                    ));
+                } catch (error) {
+                    alert('Failed to update completion count: ' + error.message);
                 }
             };
 
@@ -572,7 +595,7 @@
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {beatenGames.map((game) => (
                                             <div
-                                                key={game.id}
+                                                key={game.docId}
                                                 className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-green-500 hover:border-green-400 transition"
                                             >
                                                 {game.image && (
@@ -596,6 +619,27 @@
                                                             <span className="ml-auto">{game.released}</span>
                                                         )}
                                                     </div>
+                                                    
+                                                    {/* Times Completed Section */}
+                                                    <div className="mb-3 p-3 bg-purple-900 bg-opacity-30 rounded-lg">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <i className="fas fa-redo text-purple-300"></i>
+                                                                <span className="text-white font-medium">
+                                                                    Completed: {game.timesCompleted || 1}x
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => incrementTimesCompleted(game)}
+                                                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm font-medium flex items-center gap-1"
+                                                                title="Mark as completed again"
+                                                            >
+                                                                <i className="fas fa-plus"></i>
+                                                                Beat Again
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
                                                     <button
                                                         onClick={() => removeBeatenGame(game.id)}
                                                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
@@ -723,4 +767,5 @@
     </script>
 </body>
 </html>
+
 
