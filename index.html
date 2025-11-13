@@ -15,6 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body>
     <div id="root"></div>
@@ -38,6 +39,7 @@
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // Encryption secret (in production, use environment variable)
         const SECRET_KEY = "gametrak-2025-secure-key-change-this";
@@ -64,6 +66,17 @@
             const [beatenGames, setBeatenGames] = useState([]);
             const [loading, setLoading] = useState(false);
             const [view, setView] = useState('search');
+            
+            // Profile page states
+            const [displayName, setDisplayName] = useState('');
+            const [profilePicture, setProfilePicture] = useState('');
+            const [newDisplayName, setNewDisplayName] = useState('');
+            const [newApiKey, setNewApiKey] = useState('');
+            const [currentPassword, setCurrentPassword] = useState('');
+            const [newPassword, setNewPassword] = useState('');
+            const [confirmNewPassword, setConfirmNewPassword] = useState('');
+            const [profileImageFile, setProfileImageFile] = useState(null);
+            const [uploadingImage, setUploadingImage] = useState(false);
 
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -74,72 +87,69 @@
                         setUser(null);
                         setUserApiKey('');
                         setBeatenGames([]);
+                        setDisplayName('');
+                        setProfilePicture('');
                     }
                 });
                 return () => unsubscribe();
             }, []);
 
-const loadUserData = async (userId) => {
-    try {
-        console.log('Loading user data for:', userId);
-        
-        const userDoc = await db.collection('users').doc(userId).get();
-        
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            console.log('User document found');
-            
-            const encryptedKey = userData.apiKey || '';
-            
-            // 🔍 NEW: Show what's actually stored
-            console.log('Encrypted key from Firebase:', encryptedKey);
-            console.log('Encrypted key length:', encryptedKey.length);
-            
-            if (encryptedKey) {
+            const loadUserData = async (userId) => {
                 try {
-                    const decrypted = decryptKey(encryptedKey);
-                    console.log('API key decrypted successfully');
-                    console.log('Decrypted key length:', decrypted.length);
-                    console.log('Decrypted first 10 chars:', decrypted.substring(0, 10));
-                    console.log('Setting userApiKey state with value');
+                    console.log('Loading user data for:', userId);
                     
-                    if (decrypted.length === 0) {
-                        console.error('⚠️ DECRYPTION RETURNED EMPTY STRING!');
-                        alert('Your API key could not be decrypted. You may need to sign up again with your API key.');
-                        return;
+                    const userDoc = await db.collection('users').doc(userId).get();
+                    
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        console.log('User document found');
+                        
+                        // Load display name and profile picture
+                        setDisplayName(userData.displayName || '');
+                        setProfilePicture(userData.profilePicture || '');
+                        
+                        const encryptedKey = userData.apiKey || '';
+                        
+                        console.log('Encrypted key from Firebase:', encryptedKey);
+                        console.log('Encrypted key length:', encryptedKey.length);
+                        
+                        if (encryptedKey) {
+                            try {
+                                const decrypted = decryptKey(encryptedKey);
+                                console.log('API key decrypted successfully');
+                                console.log('Decrypted key length:', decrypted.length);
+                                console.log('Decrypted first 10 chars:', decrypted.substring(0, 10));
+                                console.log('Setting userApiKey state with value');
+                                
+                                if (decrypted.length === 0) {
+                                    console.error('⚠️ DECRYPTION RETURNED EMPTY STRING!');
+                                    // Don't show alert immediately, user can fix it in profile
+                                } else {
+                                    setUserApiKey(decrypted);
+                                }
+                                
+                                setTimeout(() => {
+                                    console.log('UserApiKey state after set:', decrypted ? 'HAS VALUE' : 'EMPTY');
+                                }, 100);
+                                
+                            } catch (decryptError) {
+                                console.error('Decryption failed:', decryptError);
+                            }
+                        }
+                    } else {
+                        console.warn('User document does not exist');
                     }
                     
-                    // Force state update
-                    setUserApiKey(decrypted);
+                    const gamesSnapshot = await db.collection('users').doc(userId).collection('beatenGames').get();
+                    const games = gamesSnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+                    setBeatenGames(games);
+                    console.log('Loaded games:', games.length);
                     
-                    // Verify state was set (this will log on next render)
-                    setTimeout(() => {
-                        console.log('UserApiKey state after set:', decrypted ? 'HAS VALUE' : 'EMPTY');
-                    }, 100);
-                    
-                } catch (decryptError) {
-                    console.error('Decryption failed:', decryptError);
-                    alert('Failed to decrypt API key. Please contact support.');
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                    alert('Failed to load user data: ' + error.message);
                 }
-            } else {
-                console.warn('No API key found in user document');
-                alert('No API key found. Please sign up again with your RAWG API key.');
-            }
-        } else {
-            console.warn('User document does not exist');
-            alert('User profile not found. Please sign up again.');
-        }
-        
-        const gamesSnapshot = await db.collection('users').doc(userId).collection('beatenGames').get();
-        const games = gamesSnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-        setBeatenGames(games);
-        console.log('Loaded games:', games.length);
-        
-    } catch (error) {
-        console.error('Error loading user data:', error);
-        alert('Failed to load user data: ' + error.message);
-    }
-};
+            };
 
             const handleSignUp = async () => {
                 if (!username.trim() || !password.trim() || !apiKey.trim()) {
@@ -159,6 +169,8 @@ const loadUserData = async (userId) => {
                     await db.collection('users').doc(userCredential.user.uid).set({
                         email: username.trim(),
                         apiKey: encryptKey(apiKey.trim()),
+                        displayName: '',
+                        profilePicture: '',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     setUsername('');
@@ -205,10 +217,113 @@ const loadUserData = async (userId) => {
                 }
             };
 
+            const handleUpdateDisplayName = async () => {
+                if (!newDisplayName.trim()) {
+                    alert('Please enter a display name');
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(auth.currentUser.uid).update({
+                        displayName: newDisplayName.trim()
+                    });
+                    setDisplayName(newDisplayName.trim());
+                    setNewDisplayName('');
+                    alert('Display name updated successfully!');
+                } catch (error) {
+                    alert('Failed to update display name: ' + error.message);
+                }
+            };
+
+            const handleUpdateApiKey = async () => {
+                if (!newApiKey.trim()) {
+                    alert('Please enter an API key');
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(auth.currentUser.uid).update({
+                        apiKey: encryptKey(newApiKey.trim())
+                    });
+                    setUserApiKey(newApiKey.trim());
+                    setNewApiKey('');
+                    alert('API key updated successfully!');
+                } catch (error) {
+                    alert('Failed to update API key: ' + error.message);
+                }
+            };
+
+            const handleChangePassword = async () => {
+                if (!currentPassword || !newPassword || !confirmNewPassword) {
+                    alert('Please fill in all password fields');
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    alert('New password must be at least 6 characters');
+                    return;
+                }
+                if (newPassword !== confirmNewPassword) {
+                    alert('New passwords do not match');
+                    return;
+                }
+                try {
+                    const credential = firebase.auth.EmailAuthProvider.credential(
+                        auth.currentUser.email,
+                        currentPassword
+                    );
+                    await auth.currentUser.reauthenticateWithCredential(credential);
+                    await auth.currentUser.updatePassword(newPassword);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                    alert('Password changed successfully!');
+                } catch (error) {
+                    if (error.code === 'auth/wrong-password') {
+                        alert('Current password is incorrect');
+                    } else {
+                        alert('Failed to change password: ' + error.message);
+                    }
+                }
+            };
+
+            const handleProfileImageUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please upload an image file');
+                    return;
+                }
+
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Image must be less than 5MB');
+                    return;
+                }
+
+                setUploadingImage(true);
+                try {
+                    const storageRef = storage.ref();
+                    const fileRef = storageRef.child(`profile-pictures/${auth.currentUser.uid}`);
+                    await fileRef.put(file);
+                    const downloadURL = await fileRef.getDownloadURL();
+                    
+                    await db.collection('users').doc(auth.currentUser.uid).update({
+                        profilePicture: downloadURL
+                    });
+                    
+                    setProfilePicture(downloadURL);
+                    alert('Profile picture updated successfully!');
+                } catch (error) {
+                    alert('Failed to upload profile picture: ' + error.message);
+                } finally {
+                    setUploadingImage(false);
+                }
+            };
+
             const searchGames = async () => {
                 if (!searchQuery.trim()) return;
                 if (!userApiKey) {
-                    alert('Please sign in with a valid API key to search games');
+                    alert('Please add your API key in the Profile page to search games');
                     return;
                 }
                 setLoading(true);
@@ -218,14 +333,14 @@ const loadUserData = async (userId) => {
                     );
                     const data = await response.json();
                     if (data.error) {
-                        alert('Invalid API key. Please check your RAWG API key.');
+                        alert('Invalid API key. Please update your API key in the Profile page.');
                         setSearchResults([]);
                     } else {
                         setSearchResults(data.results || []);
                     }
                 } catch (error) {
                     console.error('Search error:', error);
-                    alert('Failed to search games. Please check your API key and try again.');
+                    alert('Failed to search games. Please check your API key in the Profile page.');
                 }
                 setLoading(false);
             };
@@ -291,13 +406,25 @@ const loadUserData = async (userId) => {
                                 <div className="flex items-center gap-4 flex-wrap">
                                     {user ? (
                                         <>
-                                            <div className="flex flex-col items-end">
-                                                <div className="flex items-center gap-2 text-white">
-                                                    <i className="fas fa-user"></i>
-                                                    <span className="font-medium">{user}</span>
-                                                </div>
-                                                <div className="text-xs text-gray-300">
-                                                    API Key: {userApiKey ? '✓ Loaded' : '✗ Missing'}
+                                            <div className="flex items-center gap-3">
+                                                {profilePicture ? (
+                                                    <img 
+                                                        src={profilePicture} 
+                                                        alt="Profile" 
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-purple-400"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center border-2 border-purple-400">
+                                                        <i className="fas fa-user text-white"></i>
+                                                    </div>
+                                                )}
+                                                <div className="flex flex-col items-start">
+                                                    <span className="font-medium text-white">
+                                                        {displayName || user}
+                                                    </span>
+                                                    <div className="text-xs text-gray-300">
+                                                        API Key: {userApiKey ? '✓ Loaded' : '✗ Missing'}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <button
@@ -404,6 +531,19 @@ const loadUserData = async (userId) => {
                                 <i className="fas fa-trophy mr-2"></i>
                                 My Games ({beatenGames.length})
                             </button>
+                            {user && (
+                                <button
+                                    onClick={() => setView('profile')}
+                                    className={`px-6 py-3 rounded-lg font-medium transition ${
+                                        view === 'profile'
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                                    }`}
+                                >
+                                    <i className="fas fa-user-circle mr-2"></i>
+                                    Profile
+                                </button>
+                            )}
                         </div>
 
                         {view === 'search' && (
@@ -529,6 +669,149 @@ const loadUserData = async (userId) => {
                                 )}
                             </div>
                         )}
+
+                        {view === 'profile' && user && (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg border border-purple-500 p-8">
+                                    <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                                        <i className="fas fa-user-circle text-purple-400"></i>
+                                        Profile Settings
+                                    </h2>
+
+                                    {/* Profile Picture Section */}
+                                    <div className="mb-8 pb-8 border-b border-purple-500">
+                                        <h3 className="text-xl font-semibold text-white mb-4">Profile Picture</h3>
+                                        <div className="flex items-center gap-6">
+                                            {profilePicture ? (
+                                                <img 
+                                                    src={profilePicture} 
+                                                    alt="Profile" 
+                                                    className="w-24 h-24 rounded-full object-cover border-4 border-purple-400"
+                                                />
+                                            ) : (
+                                                <div className="w-24 h-24 rounded-full bg-purple-600 flex items-center justify-center border-4 border-purple-400">
+                                                    <i className="fas fa-user text-white text-4xl"></i>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <input
+                                                    type="file"
+                                                    id="profile-picture-upload"
+                                                    accept="image/*"
+                                                    onChange={handleProfileImageUpload}
+                                                    className="hidden"
+                                                />
+                                                <label
+                                                    htmlFor="profile-picture-upload"
+                                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition cursor-pointer ${
+                                                        uploadingImage 
+                                                            ? 'bg-gray-600 text-white cursor-not-allowed'
+                                                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                                    }`}
+                                                >
+                                                    <i className={uploadingImage ? "fas fa-spinner fa-spin" : "fas fa-upload"}></i>
+                                                    {uploadingImage ? 'Uploading...' : 'Upload New Picture'}
+                                                </label>
+                                                <p className="text-gray-300 text-sm mt-2">Max size: 5MB. Formats: JPG, PNG, GIF</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Display Name Section */}
+                                    <div className="mb-8 pb-8 border-b border-purple-500">
+                                        <h3 className="text-xl font-semibold text-white mb-4">Display Name</h3>
+                                        <p className="text-gray-300 mb-4">
+                                            Current: <span className="text-white font-medium">{displayName || 'Not set'}</span>
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newDisplayName}
+                                                onChange={(e) => setNewDisplayName(e.target.value)}
+                                                placeholder="Enter new display name"
+                                                className="flex-1 px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <button
+                                                onClick={handleUpdateDisplayName}
+                                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                                            >
+                                                Update
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* API Key Section */}
+                                    <div className="mb-8 pb-8 border-b border-purple-500">
+                                        <h3 className="text-xl font-semibold text-white mb-4">RAWG API Key</h3>
+                                        <p className="text-gray-300 mb-4">
+                                            Status: <span className={`font-medium ${userApiKey ? 'text-green-400' : 'text-red-400'}`}>
+                                                {userApiKey ? '✓ Active' : '✗ Missing or Invalid'}
+                                            </span>
+                                        </p>
+                                        <div className="flex gap-2 mb-3">
+                                            <input
+                                                type="text"
+                                                value={newApiKey}
+                                                onChange={(e) => setNewApiKey(e.target.value)}
+                                                placeholder="Enter new RAWG API key"
+                                                className="flex-1 px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <button
+                                                onClick={handleUpdateApiKey}
+                                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                                            >
+                                                Update
+                                            </button>
+                                        </div>
+                                        <p className="text-gray-400 text-sm">
+                                            Need an API key? Get one free at{' '}
+                                            <a 
+                                                href="https://rawg.io/apidocs" 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-purple-300 hover:text-purple-200 underline"
+                                            >
+                                                rawg.io/apidocs
+                                            </a>
+                                        </p>
+                                    </div>
+
+                                    {/* Change Password Section */}
+                                    <div>
+                                        <h3 className="text-xl font-semibold text-white mb-4">Change Password</h3>
+                                        <div className="space-y-4">
+                                            <input
+                                                type="password"
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                placeholder="Current password"
+                                                className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <input
+                                                type="password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="New password (min 6 characters)"
+                                                className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <input
+                                                type="password"
+                                                value={confirmNewPassword}
+                                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                                placeholder="Confirm new password"
+                                                className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <button
+                                                onClick={handleChangePassword}
+                                                className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                                            >
+                                                Change Password
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -538,6 +821,4 @@ const loadUserData = async (userId) => {
     </script>
 </body>
 </html>
-
-
 
