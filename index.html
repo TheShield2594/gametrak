@@ -80,45 +80,55 @@
             }, []);
 
             const loadUserData = async (userId) => {
+    try {
+        console.log('Loading user data for:', userId);
+        
+        const userDoc = await db.collection('users').doc(userId).get();
+        
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            console.log('User document found');
+            
+            const encryptedKey = userData.apiKey || '';
+            
+            if (encryptedKey) {
                 try {
-                    console.log('Loading user data for:', userId);
+                    const decrypted = decryptKey(encryptedKey);
+                    console.log('API key decrypted successfully');
+                    console.log('Decrypted key length:', decrypted.length);
+                    console.log('Setting userApiKey state with value');
                     
-                    const userDoc = await db.collection('users').doc(userId).get();
+                    // Force state update
+                    setUserApiKey(decrypted);
                     
-                    if (userDoc.exists) {
-                        const userData = userDoc.data();
-                        console.log('User document found');
-                        
-                        const encryptedKey = userData.apiKey || '';
-                        
-                        if (encryptedKey) {
-                            try {
-                                const decrypted = decryptKey(encryptedKey);
-                                console.log('API key decrypted successfully');
-                                setUserApiKey(decrypted);
-                            } catch (decryptError) {
-                                console.error('Decryption failed:', decryptError);
-                                alert('Failed to decrypt API key. Please contact support.');
-                            }
-                        } else {
-                            console.warn('No API key found in user document');
-                            alert('No API key found. Please sign up again with your RAWG API key.');
-                        }
-                    } else {
-                        console.warn('User document does not exist');
-                        alert('User profile not found. Please sign up again.');
-                    }
+                    // Verify state was set (this will log on next render)
+                    setTimeout(() => {
+                        console.log('UserApiKey state after set:', decrypted ? 'HAS VALUE' : 'EMPTY');
+                    }, 100);
                     
-                    const gamesSnapshot = await db.collection('users').doc(userId).collection('beatenGames').get();
-                    const games = gamesSnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-                    setBeatenGames(games);
-                    console.log('Loaded games:', games.length);
-                    
-                } catch (error) {
-                    console.error('Error loading user data:', error);
-                    alert('Failed to load user data: ' + error.message);
+                } catch (decryptError) {
+                    console.error('Decryption failed:', decryptError);
+                    alert('Failed to decrypt API key. Please contact support.');
                 }
-            };
+            } else {
+                console.warn('No API key found in user document');
+                alert('No API key found. Please sign up again with your RAWG API key.');
+            }
+        } else {
+            console.warn('User document does not exist');
+            alert('User profile not found. Please sign up again.');
+        }
+        
+        const gamesSnapshot = await db.collection('users').doc(userId).collection('beatenGames').get();
+        const games = gamesSnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+        setBeatenGames(games);
+        console.log('Loaded games:', games.length);
+        
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        alert('Failed to load user data: ' + error.message);
+    }
+};
 
             const handleSignUp = async () => {
                 if (!username.trim() || !password.trim() || !apiKey.trim()) {
@@ -517,4 +527,5 @@
     </script>
 </body>
 </html>
+
 
