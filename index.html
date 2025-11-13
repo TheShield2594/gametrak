@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GameTrak - Video Game Database</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -24,13 +24,13 @@
 
         // 🔥 REPLACE WITH YOUR FIREBASE CONFIG
         const firebaseConfig = {
-      apiKey: "AIzaSyCbA8DPjr2kq-id8uk2SL-69neB4t5eIIM",
-      authDomain: "gametrak-69.firebaseapp.com",
-      projectId: "gametrak-69",
-      storageBucket: "gametrak-69.firebasestorage.app",
-      messagingSenderId: "867080027370",
-      appId: "1:867080027370:web:48e6203fd3b0e41ee36b93"
-  };
+            apiKey: "AIzaSyCbA8DPjr2kq-id8uk2SL-69neB4t5eIIM",
+          authDomain: "gametrak-69.firebaseapp.com",
+          projectId: "gametrak-69",
+          storageBucket: "gametrak-69.firebasestorage.app",
+          messagingSenderId: "867080027370",
+          appId: "1:867080027370:web:48e6203fd3b0e41ee36b93"
+        };
 
         // Initialize Firebase
         if (!firebase.apps.length) {
