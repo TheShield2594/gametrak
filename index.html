@@ -918,7 +918,7 @@
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-fadeIn">
-                                        {beatenGames.map((game, index) => (
+                                        {[...beatenGames].sort((a, b) => a.name.localeCompare(b.name)).map((game, index) => (
                                             <div
                                                 key={game.docId}
                                                 className="game-card glass-morphism rounded-3xl overflow-hidden shadow-2xl hover:shadow-green-500/30"
@@ -1330,3 +1330,4 @@
 </body>
 </html>
 </html>
+
